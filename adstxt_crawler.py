@@ -48,6 +48,7 @@ from optparse import OptionParser
 from urlparse import urlparse
 #pip install requests
 import requests
+import re
 
 #################################################################
 # FUNCTION process_row_to_db.
@@ -56,7 +57,11 @@ import requests
 #################################################################
 
 def process_row_to_db(conn, data_row, comment, hostname):
-    insert_stmt = "INSERT OR IGNORE INTO adstxt (SITE_DOMAIN, EXCHANGE_DOMAIN, SELLER_ACCOUNT_ID, ACCOUNT_TYPE, TAG_ID, ENTRY_COMMENT) VALUES (?, ?, ?, ?, ?, ? );"
+    if options.target_table:
+        target_table = options.target_table
+    else: 
+        target_table = 'pub_adstxt'
+    insert_stmt = "INSERT INTO "+ target_table +" (SITE_DOMAIN, EXCHANGE_DOMAIN, SELLER_ACCOUNT_ID, ACCOUNT_TYPE, TAG_ID, ENTRY_COMMENT) VALUES (?, ?, ?, ?, ?, ? );"
     exchange_host     = ''
     seller_account_id = ''
     account_type      = ''
@@ -123,22 +128,58 @@ def crawl_to_db(conn, crawl_url_queue):
     for aurl in crawl_url_queue:
         ahost = crawl_url_queue[aurl]
         logging.info(" Crawling  %s : %s " % (aurl, ahost))
-        r = requests.get(aurl, headers=myheaders)
+
+        # if we can't connect just log a warning and move on.
+        try:
+            r = requests.get(aurl, headers=myheaders, timeout=2)
+        except requests.exceptions.RequestException as e:
+            logging.warning(e)
+            continue
+
         logging.info("  %d" % r.status_code)
 
+        # disallow anything where r.history > 3 or r.url is not simply /ads.txt
+        if(len(r.history) > 3):
+            logging.warning("too many redirects "+aurl)
+            continue
+
+        if (re.search('\/ads\.txt$', r.url) is None):
+            logging.warning("URL doesn't look look ads.txt "+aurl)
+            continue
+
         if(r.status_code == 200):
+            # HTML content, probably a 404 with the wrong return code
+            if (re.search('(<html|<head|<script)', r.text) is not None):
+                logging.warning("looks like HTML, skipping "+aurl)
+                continue
+
+            # some line should contain schema-appropriate results
+            if (re.search('^([^,]+,){2,3}?[^,]+$', r.text, re.MULTILINE) is None):
+                logging.warning("nothing schema appropriate, skipping "+aurl)
+                continue
+
             logging.debug("-------------")
             logging.debug(r.request.headers)
             logging.debug("-------------")
             logging.debug("%s" % r.text)
             logging.debug("-------------")
 
+            # Ignore encode errors
             tmpfile = 'tmpads.txt'
             with open(tmpfile, 'wb') as tmp_csv_file:
-                tmp_csv_file.write(r.text)
+                r.encoding = 'utf-8'
+
+                #if '\0' in tmp_csv_file.read():
+                #    print "you have null bytes in your input file"
+                #else:
+                #    print "you don't"
+
+                tmp_csv_file.write(r.text.encode('ascii', 'ignore').decode('ascii'))
                 tmp_csv_file.close()
 
-            with open(tmpfile, 'rb') as tmp_csv_file:
+
+            # added 'U' for sites that return different newline chars
+            with open(tmpfile, 'rU') as tmp_csv_file:
                 #read the line, split on first comment and keep what is to the left (if any found)
                 line_reader = csv.reader(tmp_csv_file, delimiter='#', quotechar='|')
                 comment = ''
@@ -183,7 +224,8 @@ def crawl_to_db(conn, crawl_url_queue):
 def load_url_queue(csvfilename, url_queue):
     cnt = 0
 
-    with open(csvfilename, 'rb') as csvfile:
+    # added 'U' for sites that return different newline chars
+    with open(csvfilename, 'rU') as csvfile:
         targets_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
         for row in targets_reader:
 
@@ -217,7 +259,8 @@ def load_url_queue(csvfilename, url_queue):
                 skip = 1
 
             if(skip < 1):
-                ads_txt_url = 'http://{thehost}/ads.txt'.format(thehost=host)
+                # added encode
+                ads_txt_url = 'http://{thehost}/ads.txt'.format(thehost=host).encode('utf-8')
                 logging.info("  pushing %s" % ads_txt_url)
                 url_queue[ads_txt_url] = host
                 cnt = cnt + 1
@@ -233,6 +276,8 @@ arg_parser.add_option("-t", "--targets", dest="target_filename",
                   help="list of domains to crawl ads.txt from", metavar="FILE")
 arg_parser.add_option("-d", "--database", dest="target_database",
                   help="Database to dump crawled data into", metavar="FILE")
+arg_parser.add_option("-l", "--target_table", dest="target_table",
+                  help="Table location within Database to dump crawled data into", metavar="FILE")
 arg_parser.add_option("-v", "--verbose", dest="verbose", action='count',
                   help="Increase verbosity (specify multiple times for more)")
 
@@ -259,14 +304,12 @@ cnt_urls = load_url_queue(options.target_filename, crawl_url_queue)
 if (cnt_urls > 0) and options.target_database and (len(options.target_database) > 1):
     conn = sqlite3.connect(options.target_database)
 
-with conn:
     cnt_records = crawl_to_db(conn, crawl_url_queue)
     if(cnt_records > 0):
         conn.commit()
     #conn.close()
 
-print "Wrote %d records from %d URLs to %s" % (cnt_records, cnt_urls, options.target_database)
+print("Wrote %d records from %d URLs to %s" % (cnt_records, cnt_urls, options.target_database)) 
 
 logging.warning("Wrote %d records from %d URLs to %s" % (cnt_records, cnt_urls, options.target_database))
 logging.warning("Finished.")
-

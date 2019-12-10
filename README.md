@@ -11,8 +11,9 @@ Options:
   -t FILE, --targets=FILE
                         list of domains to crawler ads.txt from
   -d FILE, --database=FILE
-                        Database to dump crawlered data into
+                        Database to dump crawled data into
   -v, --verbose         Increase verbosity (specify multiple times for more)
+  -l                    (Optional) table name within database to write crawled data to
 ```
 ## Targets File 
 
@@ -42,12 +43,19 @@ $sqlite3 adstxt.db < adstxt_crawler.sql
 
 ## Running
 
-The usual usage would be to pass a filename of target URLs and a filename of the SQLite DB.
+The usual usage would be to pass a filename of target URLs and a filename of the SQLite DB. Add the optional `-l` to specify a table name other than the default `pub_adstxt`; Useful for crawling a hosted ads.txt text and populate the results in a different table for which to compare against the default table.
 
 ``` bash
-$ ./adstxt_crawler.py -t target_domains.txt -d adstxt.db
+$ python adstxt_crawler.py -t target_domains.txt -d adstxt.db
 Wrote 3 records from 1 URLs to adstxt.db
 ```
+(writen to default table "pub_adstxt" within adstxt.db)
+
+```bash
+$ python adstxt_crawler.py -t disqus_target_domains.txt -d adstxt.db -l disqus_adstxt
+Wrote 3 records from 1 URLs to adstxt.db
+```
+(writen to table "disqus_adstxt" within adstxt.db)
 
 Upon each run a sequence of entries in adstxt_crawler.log is created.
 
