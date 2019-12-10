@@ -16,20 +16,20 @@ CREATE TABLE disqus_adstxt(
        EXCHANGE_DOMAIN              TEXT    ,
        SELLER_ACCOUNT_ID            TEXT    ,
        ACCOUNT_TYPE                 TEXT    ,
-       TAG_ID                       TEXT    ,
+       TAG_ID                       TEXT    
 );
 
 INSERT INTO `disqus_adstxt` VALUES ('google.com', 'pub-6650322601660058', 'DIRECT', 'f08c47fec0942fa0');
 INSERT INTO `disqus_adstxt` VALUES ('google.com', 'pub-6650322601660058', 'RESELLER', 'f08c47fec0942fa0');
 INSERT INTO `disqus_adstxt` VALUES ('rubiconproject.com', '13380', 'DIRECT', '0bfd66d529a55807');
 INSERT INTO `disqus_adstxt` VALUES ('rubiconproject.com', '13380', 'RESELLER', '0bfd66d529a55807');
-INSERT INTO `disqus_adstxt` VALUES ('rubiconproject.com', '18798', 'DIRECT', '0bfd66d529a55807'
+INSERT INTO `disqus_adstxt` VALUES ('rubiconproject.com', '18798', 'DIRECT', '0bfd66d529a55807');
 INSERT INTO `disqus_adstxt` VALUES ('rubiconproject.com', '18798', 'RESELLER', '0bfd66d529a55807');
-INSERT INTO `disqus_adstxt` VALUES ('appnexus.com', '9733', 'RESELLER');
-INSERT INTO `disqus_adstxt` VALUES ('appnexus.com', '2797', 'DIRECT');
-INSERT INTO `disqus_adstxt` VALUES ('appnexus.com', '1226', 'RESELLER');
-INSERT INTO `disqus_adstxt` VALUES ('appnexus.com', '3364', 'RESELLER');
-INSERT INTO `disqus_adstxt` VALUES ('aol.com', '53392', 'RESELLER');
+INSERT INTO `disqus_adstxt` VALUES ('appnexus.com', '9733', 'RESELLER', NULL);
+INSERT INTO `disqus_adstxt` VALUES ('appnexus.com', '2797', 'DIRECT', NULL);
+INSERT INTO `disqus_adstxt` VALUES ('appnexus.com', '1226', 'RESELLER', NULL);
+INSERT INTO `disqus_adstxt` VALUES ('appnexus.com', '3364', 'RESELLER', NULL);
+INSERT INTO `disqus_adstxt` VALUES ('aol.com', '53392', 'RESELLER', NULL);
 INSERT INTO `disqus_adstxt` VALUES ('openx.com', '537133236', 'RESELLER', '6a698e2ec38604c6');
 INSERT INTO `disqus_adstxt` VALUES ('openx.com', '540717801', 'RESELLER', '6a698e2ec38604c6');
 
