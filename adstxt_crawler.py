@@ -181,35 +181,40 @@ def crawl_to_db(conn, crawl_url_queue):
             # added 'U' for sites that return different newline chars
             with open(tmpfile, 'rU') as tmp_csv_file:
                 #read the line, split on first comment and keep what is to the left (if any found)
-                line_reader = csv.reader(tmp_csv_file, delimiter='#', quotechar='|')
+                try:
+                    line_reader = csv.reader(tmp_csv_file, delimiter='#', quotechar='|')
+                except Exception as e:
+                    logging.exception("EXCEPTION:  {}  ------- {} ------- {}".format(e, aurl, tmp_csv_file))
                 comment = ''
+                try:
+                    for line in line_reader:
+                        logging.debug("DATA:  %s" % line)
 
-                for line in line_reader:
-                    logging.debug("DATA:  %s" % line)
+                        try:
+                            data_line = line[0]
+                        except:
+                            data_line = "";
 
-                    try:
-                        data_line = line[0]
-                    except:
-                        data_line = "";
+                        #determine delimiter, conservative = do it per row
+                        if data_line.find(",") != -1:
+                            data_delimiter = ','
+                        elif data_line.find("\t") != -1:
+                            data_delimiter = '\t'
+                        else:
+                            data_delimiter = ' '
 
-                    #determine delimiter, conservative = do it per row
-                    if data_line.find(",") != -1:
-                        data_delimiter = ','
-                    elif data_line.find("\t") != -1:
-                        data_delimiter = '\t'
-                    else:
-                        data_delimiter = ' '
+                        data_reader = csv.reader([data_line], delimiter=',', quotechar='|')
+                        for row in data_reader:
 
-                    data_reader = csv.reader([data_line], delimiter=',', quotechar='|')
-                    for row in data_reader:
+                            if len(row) > 0 and row[0].startswith( '#' ):
+                                continue
 
-                        if len(row) > 0 and row[0].startswith( '#' ):
-                            continue
+                            if (len(line) > 1) and (len(line[1]) > 0):
+                                comment = line[1]
 
-                        if (len(line) > 1) and (len(line[1]) > 0):
-                             comment = line[1]
-
-                        rowcnt = rowcnt + process_row_to_db(conn, row, comment, ahost)
+                            rowcnt = rowcnt + process_row_to_db(conn, row, comment, ahost)
+                except Exception as e:
+                    logging.exception("EXCEPTION: {}   ------- {}  ------- {}".format(e, aurl))
 
     return rowcnt
 
