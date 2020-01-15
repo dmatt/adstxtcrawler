@@ -214,7 +214,7 @@ def crawl_to_db(conn, crawl_url_queue):
 
                             rowcnt = rowcnt + process_row_to_db(conn, row, comment, ahost)
                 except Exception as e:
-                    logging.exception("EXCEPTION: {}   ------- {}  ------- {}".format(e, aurl))
+                    logging.exception("EXCEPTION: {}   ------- {} ".format(e, aurl))
 
     return rowcnt
 
