@@ -56,12 +56,12 @@ import re
 #
 #################################################################
 
-def process_row_to_db(conn, data_row, comment, hostname):
+def process_row_to_db(conn, data_row, comment, hostname, shortname):
     if options.target_table:
         target_table = options.target_table
     else: 
         target_table = 'pub_adstxt'
-    insert_stmt = "INSERT INTO "+ target_table +" (SITE_DOMAIN, EXCHANGE_DOMAIN, SELLER_ACCOUNT_ID, ACCOUNT_TYPE, TAG_ID, ENTRY_COMMENT) VALUES (?, ?, ?, ?, ?, ? );"
+    insert_stmt = "INSERT INTO "+ target_table +" (SITE_DOMAIN, SITE_SHORTNAME, EXCHANGE_DOMAIN, SELLER_ACCOUNT_ID, ACCOUNT_TYPE, TAG_ID, ENTRY_COMMENT) VALUES (?, ?, ?, ?, ?, ?, ? );"
     exchange_host     = ''
     seller_account_id = ''
     account_type      = ''
@@ -96,11 +96,11 @@ def process_row_to_db(conn, data_row, comment, hostname):
         data_valid = 0
 
     if(data_valid > 0):
-        logging.debug( "%s | %s | %s | %s | %s | %s" % (hostname, exchange_host, seller_account_id, account_type, tag_id, comment))
+        logging.debug( "%s | %s | %s | %s | %s | %s | %s" % (hostname, shortname, exchange_host, seller_account_id, account_type, tag_id, comment))
 
         # Insert a row of data using bind variables (protect against sql injection)
         c = conn.cursor()
-        c.execute(insert_stmt, (hostname, exchange_host, seller_account_id, account_type, tag_id, comment))
+        c.execute(insert_stmt, (hostname, shortname, exchange_host, seller_account_id, account_type, tag_id, comment))
 
         # Save (commit) the changes
         conn.commit()
@@ -116,7 +116,7 @@ def process_row_to_db(conn, data_row, comment, hostname):
 #
 #################################################################
 
-def crawl_to_db(conn, crawl_url_queue):
+def crawl_to_db(conn, crawl_url_queue, crawl_url_shortname_mapping):
 
     rowcnt = 0
 
@@ -127,7 +127,8 @@ def crawl_to_db(conn, crawl_url_queue):
 
     for aurl in crawl_url_queue:
         ahost = crawl_url_queue[aurl]
-        logging.info(" Crawling  %s : %s " % (aurl, ahost))
+        ashortname = crawl_url_shortname_mapping[ahost]
+        logging.info(" Crawling  %s : %s " % (aurl, ahost, ashortname))
 
         # if we can't connect just log a warning and move on.
         try:
@@ -212,7 +213,7 @@ def crawl_to_db(conn, crawl_url_queue):
                             if (len(line) > 1) and (len(line[1]) > 0):
                                 comment = line[1]
 
-                            rowcnt = rowcnt + process_row_to_db(conn, row, comment, ahost)
+                            rowcnt = rowcnt + process_row_to_db(conn, row, comment, ahost, ashortname)
                 except Exception as e:
                     logging.exception("EXCEPTION: {}   ------- {} ".format(e, aurl))
 
@@ -226,7 +227,7 @@ def crawl_to_db(conn, crawl_url_queue):
 #
 #################################################################
 
-def load_url_queue(csvfilename, url_queue):
+def load_url_queue(csvfilename, url_queue, url_shortname_mapping):
     cnt = 0
 
     # added 'U' for sites that return different newline chars
@@ -240,13 +241,14 @@ def load_url_queue(csvfilename, url_queue):
             for item in row:
                 host = "localhost"
 
-                if  "http:" in item or "https:" in item :
-                    logging.info( "URL: %s" % item)
+                if  "http:" in row[0] or "https:" in row[0]:
+                    logging.info( "URL: %s" % row[0])
                     parsed_uri = urlparse(row[0])
                     host = parsed_uri.netloc
                 else:
-                    host = item
+                    host = row[0]
                     logging.info( "HOST: %s" % item)
+                    shortname = row[1]
 
             skip = 0
 
@@ -268,6 +270,9 @@ def load_url_queue(csvfilename, url_queue):
                 ads_txt_url = 'http://{thehost}/ads.txt'.format(thehost=host).encode('utf-8')
                 logging.info("  pushing %s" % ads_txt_url)
                 url_queue[ads_txt_url] = host
+                # Add to a url_shortname_mapping dictionary {'example.com': 'example-shortname', ... }
+                # to make final resulting dataset include shortname
+                url_shortname_mapping[host] = shortname
                 cnt = cnt + 1
 
     return cnt
@@ -300,16 +305,17 @@ elif options.verbose >= 2:
 logging.basicConfig(filename='adstxt_crawler.log',level=log_level,format='%(asctime)s %(filename)s:%(lineno)d:%(levelname)s  %(message)s')
 
 crawl_url_queue = {}
+crawl_url_shortname_mapping = {}
 conn = None
 cnt_urls = 0
 cnt_records = 0
 
-cnt_urls = load_url_queue(options.target_filename, crawl_url_queue)
+cnt_urls = load_url_queue(options.target_filename, crawl_url_queue, crawl_url_shortname_mapping)
 
 if (cnt_urls > 0) and options.target_database and (len(options.target_database) > 1):
     conn = sqlite3.connect(options.target_database)
 
-    cnt_records = crawl_to_db(conn, crawl_url_queue)
+    cnt_records = crawl_to_db(conn, crawl_url_queue, crawl_url_shortname_mapping)
     if(cnt_records > 0):
         conn.commit()
     #conn.close()

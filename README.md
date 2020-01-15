@@ -38,7 +38,7 @@ The project depends on these libraries and programs installed
 
 Execute this command to install the DB table 
 ``` bash
-$sqlite3 adstxt.db < adstxt_crawler.sql 
+$ sqlite3 adstxt.db < adstxt_crawler.sql
 ```
 
 ## Running

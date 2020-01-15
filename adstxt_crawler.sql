@@ -4,6 +4,7 @@ DROP TABLE IF EXISTS pub_adstxt;
 
 CREATE TABLE pub_adstxt(
        SITE_DOMAIN                  TEXT    NOT NULL,
+       SITE_SHORTNAME               TEXT    NOT NULL,
        EXCHANGE_DOMAIN              TEXT    NOT NULL,
        SELLER_ACCOUNT_ID            TEXT    NOT NULL,
        ACCOUNT_TYPE                 TEXT    NOT NULL,
