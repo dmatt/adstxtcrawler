@@ -214,6 +214,7 @@ def crawl_to_db(conn, crawl_url_queue, crawl_url_shortname_mapping):
                                 comment = line[1]
 
                             rowcnt = rowcnt + process_row_to_db(conn, row, comment, ahost, ashortname)
+                            print('Rows processed: ', rowcnt)
                 except Exception as e:
                     logging.exception("EXCEPTION: {}   ------- {} ".format(e, aurl))
 
@@ -234,21 +235,21 @@ def load_url_queue(csvfilename, url_queue, url_shortname_mapping):
     with open(csvfilename, 'rU') as csvfile:
         targets_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
         for row in targets_reader:
-
-            if len(row) < 1 or row[0].startswith( '#' ):
+            if len(row) < 2 or row[0].startswith( '#' ):
+                # Skip row if it doesn't have target_url and target_shortname
                 continue
 
-            for item in row:
-                host = "localhost"
+            host = "localhost"
+            target_url = row[0]
+            target_shortname = row[1]
 
-                if  "http:" in row[0] or "https:" in row[0]:
-                    logging.info( "URL: %s" % row[0])
-                    parsed_uri = urlparse(row[0])
-                    host = parsed_uri.netloc
-                else:
-                    host = row[0]
-                    logging.info( "HOST: %s" % item)
-                    shortname = row[1]
+            if  "http:" in target_url or "https:" in target_url:
+                logging.info( "URL: %s" % target_url)
+                parsed_uri = urlparse(target_url)
+                host = parsed_uri.netloc
+            else:
+                host = target_url
+                logging.info( "HOST: %s" % host)
 
             skip = 0
 
@@ -272,7 +273,7 @@ def load_url_queue(csvfilename, url_queue, url_shortname_mapping):
                 url_queue[ads_txt_url] = host
                 # Add to a url_shortname_mapping dictionary {'example.com': 'example-shortname', ... }
                 # to make final resulting dataset include shortname
-                url_shortname_mapping[host] = shortname
+                url_shortname_mapping[host] = target_shortname
                 cnt = cnt + 1
 
     return cnt
