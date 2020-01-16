@@ -128,7 +128,7 @@ def crawl_to_db(conn, crawl_url_queue, crawl_url_shortname_mapping):
     for aurl in crawl_url_queue:
         ahost = crawl_url_queue[aurl]
         ashortname = crawl_url_shortname_mapping[ahost]
-        logging.info(" Crawling  %s : %s " % (aurl, ahost, ashortname))
+        logging.info(" Crawling  %s : %s : %s " % (aurl, ahost, ashortname))
 
         # if we can't connect just log a warning and move on.
         try:
