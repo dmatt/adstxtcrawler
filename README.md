@@ -33,8 +33,20 @@ localhosttribune.com
 The project depends on these libraries and programs installed
 
 * Python 2 or better
-* Python HTTP Requests libary (pip install requests)
+* Python HTTP Requests libary
 * sqlite3
+
+Create the virtual env:
+
+`virtualenv adstxt-venv`
+
+Activate your new venv:
+
+`adstxt-venv/bin/activate`
+
+Install packages from `requirements.txt` in your new venv:
+
+`pip install -r requirements.txt`
 
 Execute this command to install the DB table 
 ``` bash
